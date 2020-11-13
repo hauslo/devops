@@ -1,15 +1,15 @@
 const yargs = require("yargs");
 
-const { version } = require("../config");
+const { version, name } = require("../config");
 
 const cli = yargs
     .version(version)
+    .scriptName(name)
     .usage("Usage: $0 help")
     .showHelpOnFail(false)
     .exitProcess(false)
     .help(false)
     .fail(() => {})
-    .demandCommand(1)
     .option("it", {
         describe: `Runs the command in interactive mode`,
         type: "boolean"
@@ -35,7 +35,7 @@ const cli = yargs
     .command("provision <infrastructure>", "Provision an infrastructure with terraform");
 
 module.exports = cmdLine => {
-    const options = cmdLine ? cli.parse([...cmdLine]) : cli.argv;
+    const options = cmdLine ? cli.parse([...cmdLine]) : cli.parse();
     const [command, ...args] = options._;
     delete options.$0;
     delete options._;

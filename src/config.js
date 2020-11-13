@@ -1,8 +1,9 @@
 const path = require("path");
-const { version } = require("../package.json");
+const { version, name } = require("../package.json");
 
 module.exports = {
     version,
+    name,
     cwd: path.resolve(process.cwd()),
     config: ".devops",
     shareEnv: "share.env",
