@@ -37,7 +37,7 @@ module.exports.start = async (deployment, { envFile = [], it = false }) => {
         }
     });
 
-    return docker.compose(composeFile, ["up"], { it, env: importedEnv });
+    return docker.compose(composeFile, "up", { it, env: importedEnv });
 };
 
 module.exports.stop = async (deployment, { envFile = [], it = false }) => {
@@ -54,7 +54,7 @@ module.exports.stop = async (deployment, { envFile = [], it = false }) => {
         }
     });
 
-    return docker.compose(composeFile, ["down"], { it, env: importedEnv });
+    return docker.compose(composeFile, "down", { it, env: importedEnv });
 };
 
 module.exports.test = async (suite, args = [], { envFile = [], it = true }) => {
