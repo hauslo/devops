@@ -6,26 +6,29 @@
 
 That's it.
 
+We use two bash scripts (`build.sh` and `devops.sh`) and the environment variable `$PATH` for convenience
+
 ## Install
 
 Clone :
 
 ```bash
 git clone github.com/hauslo/devops
+cd devops
 ```
 
 Build :
 
 ```bash
-cd devops
-docker build -t hauslo-devops:latest .
+chmod +x build.sh
+./build.sh # --no-cache
 ```
 
 Link or add to your \$PATH :
 
 ```bash
-chmod +x ./devops
-ln -s $(pwd)/devops/devops /usr/bin/devops
+chmod +x devops.sh
+ln -s $(pwd)/devops/devops.sh /usr/bin/devops
 ```
 
 Enjoy :
@@ -53,6 +56,7 @@ devops deploy <cluster> <stack>
 
 devops backup <cluster> <storage-service>
 devops restore <cluster> <storage-service>
+devops logs <cluster> <service>
 ```
 
 ```
@@ -143,8 +147,33 @@ A terraform configuration in `.devops/config/infrastructure/<infrastructure>`
 
 ### `provision-swarm <swarm> <infrastructure>`
 
+### `provision-cluster <cluster>`
+
+### `deploy <cluster> <stack>`
+
+Deploy a stack to a cluster with terraform (to add/remove services without having them go down and while sharing the state between multiple deployment machines)
+
 ---
 
 ## CI
 
 No CI configuration is included by default.
+
+---
+
+## Todo
+
+Ensure that the DEVOPS_NAMESPACE and DEVOPS_VERSION environment variables are set.
+
+Document available environment variables
+
+- `*` in `share.env`
+- `*` in `local.env`
+- `DEVOPS_VERSION`
+- `DEVOPS_ROOT`
+- `DEVOPS_CONFIG`
+
+Document required environment variables
+
+- `DEVOPS_NAMESPACE`
+- `DEVOPS_VERSION` (overridden with the exact version number)

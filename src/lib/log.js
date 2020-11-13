@@ -1,14 +1,29 @@
+/* eslint-disable no-console */
+const debug = require("debug");
 const { name: NAME } = require("../../package.json");
-// eslint-disable-next-line import/order
-const debug = require("debug")(`${NAME}`);
 
-const log = (...args) => {
-    if (debug.enabled) {
-        debug(...args);
+module.exports = (namespace, { debugOnly = true } = {}) => {
+    const thisDebug = debug(`${NAME}:${namespace}`);
+    return {
+        log: (...args) => {
+            if (!thisDebug.enabled && !debugOnly) {
+                console.error(...args);
+            } else {
+                thisDebug(...args);
+            }
+        },
+        debug: thisDebug
+    };
+};
+
+const defaultDebug = debug(NAME);
+
+module.exports.log = (...args) => {
+    if (defaultDebug.enabled) {
+        defaultDebug(...args);
     } else {
-        // eslint-disable-next-line no-console
         console.error(...args);
     }
 };
 
-module.exports = { debug, log };
+module.exports.debug = defaultDebug;

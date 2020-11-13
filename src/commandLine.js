@@ -2,14 +2,23 @@
 const cli = require("./cli");
 const command = require("./command");
 const { log, debug } = require("./lib/log");
+const { debug: debugModule } = require("./lib/log")("command-line");
 
 const commandLine = async line => {
     let exit = 0;
     try {
         const parsed = await cli(line);
         if (commandLine[parsed.command]) {
+            debugModule(
+                `parsed command : ${parsed.command} ${JSON.stringify(parsed.options)} ${JSON.stringify(parsed.args)}`
+            );
             exit = await Promise.resolve(commandLine[parsed.command](parsed.options, parsed.args));
         } else {
+            debugModule(
+                `parsed command : dev/${parsed.command} ${JSON.stringify(parsed.options)} ${JSON.stringify(
+                    parsed.args
+                )}`
+            );
             exit = await commandLine.dev(parsed.command, parsed.options, parsed.args);
         }
     } catch (err) {
@@ -59,6 +68,9 @@ commandLine.build = async ({ envFile, service }) => {
 };
 commandLine.release = async ({ envFile, service }) => {
     return command.release(service, { envFile });
+};
+commandLine.provision = async ({ envFile, it, infrastructure }, args) => {
+    return command.provision(infrastructure, args, { envFile, it });
 };
 
 module.exports = commandLine;

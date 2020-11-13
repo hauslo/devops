@@ -1,9 +1,9 @@
 const { spawn } = require("child_process");
-const { debug } = require("./log");
+const { debug } = require("./log")("run");
 
 const run = async (command, args, { cwd, env = {} } = {}) =>
     new Promise(resolve => {
-        debug(`Running ${command} ${args.join(" ")}`);
+        debug(`Running (cwd=${cwd}) ${command} ${args.join(" ")}`);
         const subprocess = spawn(command, args, {
             cwd,
             env,
@@ -16,7 +16,7 @@ const run = async (command, args, { cwd, env = {} } = {}) =>
 
 const runBound = async (command, args, { cwd, env = {} } = {}) =>
     new Promise(resolve => {
-        debug(`Running (bound) ${command} ${args.join(" ")}`);
+        debug(`Running (bound,cwd=${cwd}) ${command} ${args.join(" ")}`);
         const subprocess = spawn(command, args, {
             cwd,
             env,

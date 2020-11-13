@@ -8,14 +8,12 @@ const {
     devTestSuites,
     devScripts,
     prodBuildScripts,
-    prodReleaseVersions
+    prodReleaseVersions,
+    prodInfrastructureConfigs
 } = require("./config");
 const { import: importEnv } = require("./env");
 const ensureVersionCompatibility = require("./lib/ensureVersionCompatibility");
-const dockerBuildAndRun = require("./lib/dockerBuildAndRun");
-const dockerCompose = require("./lib/dockerCompose");
-const dockerBuild = require("./lib/dockerBuild");
-const dockerTag = require("./lib/dockerTag");
+const docker = require("./lib/docker");
 
 module.exports.version = () => version;
 
@@ -39,7 +37,7 @@ module.exports.start = async (deployment, { envFile = [], it = false }) => {
         }
     });
 
-    return dockerCompose(composeFile, "up", { cwd, it, env: importedEnv });
+    return docker.compose(composeFile, ["up"], { it, env: importedEnv });
 };
 
 module.exports.stop = async (deployment, { envFile = [], it = false }) => {
@@ -56,7 +54,7 @@ module.exports.stop = async (deployment, { envFile = [], it = false }) => {
         }
     });
 
-    return dockerCompose(composeFile, "down", { cwd, it, env: importedEnv });
+    return docker.compose(composeFile, ["down"], { it, env: importedEnv });
 };
 
 module.exports.test = async (suite, args = [], { envFile = [], it = true }) => {
@@ -73,7 +71,7 @@ module.exports.test = async (suite, args = [], { envFile = [], it = true }) => {
         }
     });
 
-    return dockerBuildAndRun(dockerFile, args, { cwd, it, env: importedEnv });
+    return docker.buildAndRun(dockerFile, args, { it, env: importedEnv });
 };
 
 module.exports.dev = async (service, script, args = [], { envFile = [], it = true }) => {
@@ -112,7 +110,13 @@ module.exports.dev = async (service, script, args = [], { envFile = [], it = tru
         }
     );
 
-    return dockerBuildAndRun(dockerFile, args, { cwd: serviceWorkingDirectory, it, env: importedEnv });
+    return docker.buildAndRun(dockerFile, args, {
+        root: cwd,
+        buildDir: serviceWorkingDirectory,
+        runDir: serviceWorkingDirectory,
+        it,
+        env: importedEnv
+    });
 };
 
 module.exports.build = async (service, { envFile = [] }) => {
@@ -146,7 +150,7 @@ module.exports.build = async (service, { envFile = [] }) => {
         }
     );
     const tag = `${importedEnv.DEVOPS_NAMESPACE}_${service}:dev`;
-    return dockerBuild(dockerFile, tag, { cwd: serviceWorkingDirectory, env: importedEnv });
+    return docker.build(dockerFile, tag, { buildDir: serviceWorkingDirectory, env: importedEnv });
 };
 
 module.exports.release = async (service, { envFile = [] }) => {
@@ -169,5 +173,31 @@ module.exports.release = async (service, { envFile = [] }) => {
     const serviceVersion = (await fsp.readFile(versionFile, "utf8")).trim();
     const buildTag = `${importedEnv.DEVOPS_NAMESPACE}_${service}:dev`;
     const ReleaseTag = `${importedEnv.DEVOPS_NAMESPACE}_${service}:${serviceVersion}`;
-    return dockerTag(buildTag, ReleaseTag);
+    return docker.tag(buildTag, ReleaseTag);
+};
+
+module.exports.provision = async (infrastructure, args = [], { envFile = [], it = true }) => {
+    const importedEnv = await importEnv(...envFile);
+    ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
+    const infrastructureConfig = path.join(config, prodInfrastructureConfigs, infrastructure);
+    await fsp.stat(infrastructureConfig).catch(err => {
+        if (err.code !== "ENOENT") {
+            throw err;
+        } else {
+            throw new Error(
+                `Infrastructure ${infrastructure} not found (${path.join(
+                    config,
+                    prodInfrastructureConfigs,
+                    infrastructure
+                )})`
+            );
+        }
+    });
+
+    return docker.run("hashicorp/terraform:light", args, {
+        root: cwd,
+        runDir: infrastructureConfig,
+        it,
+        env: importedEnv
+    });
 };

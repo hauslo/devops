@@ -1,5 +1,4 @@
 const yargs = require("yargs");
-const scanConfigForCompletion = require("../lib/scanConfigForCompletion");
 
 const { version } = require("../config");
 
@@ -22,41 +21,18 @@ const cli = yargs
         type: "string"
     })
     .coerce("env-file", files => (typeof files === "string" ? [files] : files))
-    .completion("completion", async () =>
-        scanConfigForCompletion().then(completion => [
-            ...completion,
-            "version",
-            "debug",
-            "start",
-            "stop",
-            "test",
-            "build",
-            "release",
-            "provision",
-            "provision-cluster",
-            "deploy",
-            "backup",
-            "restore"
-        ])
-    )
     .command("version", `Prints the version number (=${version})`)
     .command("help", `Prints this documentation`)
     .command(
         "debug",
         `Dumps the parsed configuration (environment variables, detected services and their commands, etc)`
     )
-    .command("start <deployment>", "Starts a local deployment")
-    .command("stop <deployment>", "Stops the current local deployment")
+    .command("start <deployment>", "Starts a local deployment for development/testing purpose")
+    .command("stop <deployment>", "Stops the local deployment")
     .command("test <suite>", "Runs a test suite against the local deployment")
-    .command("build <service>", "Builds the service container")
-    .command("release <service>", "Releases the build service container as a new version");
-/*
-    .command("provision <infrastructure>", "Provision an infrastructure")
-    .command("provision-cluster <infrastructure> <cluster>", "Creates/Updates a swarm cluster")
-    .command("deploy <cluster> <stack>", "Deploys a service stack to a cluster")
-    .command("backup <cluster> <stack> <service>", "Backups a deployed service")
-    .command("restore <cluster> <stack> <service>", "Restores a deployed service")
-*/
+    .command("build <service>", "Builds the service container for deployment")
+    .command("release <service>", "Versions a build and releases it to the container registry")
+    .command("provision <infrastructure>", "Provision an infrastructure with terraform");
 
 module.exports = cmdLine => {
     const options = cmdLine ? cli.parse([...cmdLine]) : cli.argv;
