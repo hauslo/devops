@@ -43,10 +43,10 @@ devops test <suite> [...arguments]
 
 devops <service> <script> [...arguments]
 
-# WIP
 devops build <service>
 devops release <service>
 
+# WIP
 devops provision <infrastructure> <apply|plan|destroy> [...arguments]
 devops provision-cluster <infrastructure> <cluster>
 devops deploy <cluster> <stack>
@@ -111,13 +111,9 @@ Run a development script as a container mounted on the service source
 
 A `<script>.Dockerfile` in the `.devops/dev/<service>` directory
 
----
-
-## Features (WIP)
-
 ### `build <service>`
 
-Builds the deployment-ready images of the service. These images are automatically tagged with `:latest`
+Builds the deployment-ready images of the service. These images are automatically tagged with `:dev`
 
 #### Configuration
 
@@ -130,6 +126,10 @@ Releases the previously build image of a service to the container registry and t
 ### Configuration
 
 A `<service>.Dockerfile` in the `.devops/config/build` directory and the version number in the `.devops/config/releases/<service>` file
+
+---
+
+## Features (WIP)
 
 ### `provision <infrastructure>`
 

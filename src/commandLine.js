@@ -54,5 +54,11 @@ commandLine.test = async ({ envFile, it, suite }, args) => {
 commandLine.dev = async (service, { envFile, it }, [script, ...args]) => {
     return command.dev(service, script, args, { envFile, it });
 };
+commandLine.build = async ({ envFile, service }) => {
+    return command.build(service, { envFile });
+};
+commandLine.release = async ({ envFile, service }) => {
+    return command.release(service, { envFile });
+};
 
 module.exports = commandLine;

@@ -47,10 +47,10 @@ const cli = yargs
     )
     .command("start <deployment>", "Starts a local deployment")
     .command("stop <deployment>", "Stops the current local deployment")
-    .command("test <suite>", "Runs a test suite against the local deployment");
-/*
+    .command("test <suite>", "Runs a test suite against the local deployment")
     .command("build <service>", "Builds the service container")
-    .command("release <service>", "Releases the build service container as a new version")
+    .command("release <service>", "Releases the build service container as a new version");
+/*
     .command("provision <infrastructure>", "Provision an infrastructure")
     .command("provision-cluster <infrastructure> <cluster>", "Creates/Updates a swarm cluster")
     .command("deploy <cluster> <stack>", "Deploys a service stack to a cluster")

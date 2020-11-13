@@ -1,6 +1,6 @@
 {
     "name": "@hauslo/devops",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": "fntb",
     "license": "MIT",
     "scripts": {
@@ -20,6 +20,7 @@
     "dependencies": {
         "debug": "^4.2.0",
         "dotenv": "^8.2.0",
+        "semver": "^7.3.2",
         "yargs": "^16.1.0"
     }
 }
