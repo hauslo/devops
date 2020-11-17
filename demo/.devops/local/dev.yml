@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  website:
+    image: node:current
+    init: true
+    volumes:
+      - "${DEVOPS_ROOT}/signal/:${DEVOPS_ROOT}/signal/"
+    environment:
+      - CI=true
+    working_dir: ${DEVOPS_ROOT}/signal/
+    command: ["index.js"]
+    user: "node"

@@ -72,5 +72,8 @@ commandLine.release = async ({ envFile, service }) => {
 commandLine.provision = async ({ envFile, it, infrastructure }, args) => {
     return command.provision(infrastructure, args, { envFile, it });
 };
+commandLine.configure = async ({ envFile, it, infrastructure, playbook, inventoryFile, identityFile }, args) => {
+    return command.configure(infrastructure, playbook, args, { envFile, it, inventoryFile, identityFile });
+};
 
 module.exports = commandLine;

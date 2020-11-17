@@ -116,4 +116,11 @@ docker.compose = async (
 
 docker.tag = (image, tag, { stdout = false } = {}) => (stdout ? runBound : run)("docker", ["tag", image, tag]);
 
+docker.login = (registry, user, password, { stdout = false } = {}) =>
+    (stdout ? runBound : run)("docker", ["login", "-u", user, "-p", password, registry]);
+
+docker.push = (image, { stdout = false } = {}) => {
+    return (stdout ? runBound : run)("docker", ["push", `${image}`]);
+};
+
 module.exports = docker;

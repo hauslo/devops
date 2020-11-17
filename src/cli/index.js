@@ -32,7 +32,18 @@ const cli = yargs
     .command("test <suite>", "Runs a test suite against the local deployment")
     .command("build <service>", "Builds the service container for deployment")
     .command("release <service>", "Versions a build and releases it to the container registry")
-    .command("provision <infrastructure>", "Provision an infrastructure with terraform");
+    .command("provision <infrastructure>", "Provision an infrastructure with terraform")
+    .command("configure <infrastructure> <playbook>", "Configure an infrastructure with ansible", command =>
+        command
+            .option("identity-file", {
+                describe: `SSH identity file for ansible`,
+                type: "string"
+            })
+            .option("inventory-file", {
+                describe: `Ansible inventory file`,
+                type: "string"
+            })
+    );
 
 module.exports = cmdLine => {
     const options = cmdLine ? cli.parse([...cmdLine]) : cli.parse();

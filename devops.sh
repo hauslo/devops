@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 DEVOPS_ROOT=$(pwd)
-DEVOPS_IMAGE=hauslo-devops:latest
+DEVOPS_IMAGE=hauslo/devops:0.4.0
 
 COLOR_ON="\033[1;33m"
 COLOR_OFF="\033[0m"
 
-echo -e "  ${COLOR_ON}@hauslo/devops${COLOR_OFF}" docker run --rm -it "\\" "\n" \
+echo -e "  ${COLOR_ON}@hauslo/devops:devops.sh${COLOR_OFF}" docker run --rm -it "\\" "\n" \
 "\t" -v /var/run/docker.sock:/var/run/docker.sock "\\" "\n" \
 "\t" -v ${DEVOPS_ROOT}/:${DEVOPS_ROOT}/ "\\" "\n" \
 "\t" -w ${DEVOPS_ROOT} "\\" "\n" \

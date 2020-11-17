@@ -9,11 +9,13 @@ const {
     devScripts,
     prodBuildScripts,
     prodReleaseVersions,
-    prodInfrastructureConfigs
+    prodProvisionConfigs,
+    prodConfigureConfigs
 } = require("./config");
 const { import: importEnv } = require("./env");
 const ensureVersionCompatibility = require("./lib/ensureVersionCompatibility");
 const docker = require("./lib/docker");
+const { log } = require("./lib/log");
 
 module.exports.version = () => version;
 
@@ -26,7 +28,7 @@ module.exports.env = async ({ envFile = [] }) => {
 module.exports.start = async (deployment, { envFile = [], it = false }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const composeFile = path.join(config, devDeployments, `${deployment}.yml`);
+    const composeFile = path.join(cwd, config, devDeployments, `${deployment}.yml`);
     await fsp.stat(composeFile).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -43,7 +45,7 @@ module.exports.start = async (deployment, { envFile = [], it = false }) => {
 module.exports.stop = async (deployment, { envFile = [], it = false }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const composeFile = path.join(config, devDeployments, `${deployment}.yml`);
+    const composeFile = path.join(cwd, config, devDeployments, `${deployment}.yml`);
     await fsp.stat(composeFile).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -60,7 +62,7 @@ module.exports.stop = async (deployment, { envFile = [], it = false }) => {
 module.exports.test = async (suite, args = [], { envFile = [], it = true }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const dockerFile = path.join(config, devTestSuites, `${suite}.Dockerfile`);
+    const dockerFile = path.join(cwd, config, devTestSuites, `${suite}.Dockerfile`);
     await fsp.stat(dockerFile).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -77,7 +79,7 @@ module.exports.test = async (suite, args = [], { envFile = [], it = true }) => {
 module.exports.dev = async (service, script, args = [], { envFile = [], it = true }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const dockerFile = path.join(config, devScripts, service, `${script}.Dockerfile`);
+    const dockerFile = path.join(cwd, config, devScripts, service, `${script}.Dockerfile`);
     await fsp.stat(dockerFile).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -122,7 +124,7 @@ module.exports.dev = async (service, script, args = [], { envFile = [], it = tru
 module.exports.build = async (service, { envFile = [] }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const dockerFile = path.join(config, prodBuildScripts, `${service}.Dockerfile`);
+    const dockerFile = path.join(cwd, config, prodBuildScripts, `${service}.Dockerfile`);
     await fsp.stat(dockerFile).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -149,14 +151,18 @@ module.exports.build = async (service, { envFile = [] }) => {
             }
         }
     );
-    const tag = `${importedEnv.DEVOPS_NAMESPACE}_${service}:dev`;
+    const { DEVOPS_NAMESPACE: namespace } = importedEnv;
+    if (!namespace) {
+        throw new Error("Missing required environment variable DEVOPS_NAMESPACE - abort release");
+    }
+    const tag = `${namespace}_${service}:dev`;
     return docker.build(dockerFile, tag, { buildDir: serviceWorkingDirectory, env: importedEnv });
 };
 
 module.exports.release = async (service, { envFile = [] }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const versionFile = path.join(config, prodReleaseVersions, `${service}.version`);
+    const versionFile = path.join(cwd, config, prodReleaseVersions, `${service}.version`);
     await fsp.stat(versionFile).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -171,15 +177,51 @@ module.exports.release = async (service, { envFile = [] }) => {
         }
     });
     const serviceVersion = (await fsp.readFile(versionFile, "utf8")).trim();
-    const buildTag = `${importedEnv.DEVOPS_NAMESPACE}_${service}:dev`;
-    const ReleaseTag = `${importedEnv.DEVOPS_NAMESPACE}_${service}:${serviceVersion}`;
-    return docker.tag(buildTag, ReleaseTag);
+
+    const { DEVOPS_NAMESPACE: namespace } = importedEnv;
+    if (!namespace) {
+        throw new Error("Missing required environment variable DEVOPS_NAMESPACE - abort release");
+    }
+
+    const buildTag = `${namespace}_${service}:dev`;
+    const releaseTag = `${namespace}_${service}:${serviceVersion}`;
+    let { code } = await docker.tag(buildTag, releaseTag);
+    if (code !== 0) {
+        log("docker tag exited with a non-zero exit code - abort run");
+        return { code };
+    }
+
+    const {
+        DEVOPS_REGISTRY_LOGIN_URL: registryLoginUrl,
+        DEVOPS_REGISTRY_URL: registryUrl,
+        DEVOPS_REGISTRY_USER: registryUser,
+        DEVOPS_REGISTRY_PASSWORD: registryPassword
+    } = importedEnv;
+    if (!registryLoginUrl) {
+        log("Environment variable DEVOPS_REGISTRY_LOGIN_URL not found - abort push");
+        return { code: 0 };
+    }
+
+    code = (await docker.login(registryLoginUrl, registryUser, registryPassword)).code;
+    if (code !== 0) {
+        log("docker login exited with a non-zero exit code - abort push");
+        return { code };
+    }
+
+    const registryReleaseTag = `${registryUrl}/${releaseTag}`;
+    code = (await docker.tag(releaseTag, registryReleaseTag)).code;
+    if (code !== 0) {
+        log("docker tag exited with a non-zero exit code - abort push");
+        return { code };
+    }
+
+    return docker.push(registryReleaseTag);
 };
 
 module.exports.provision = async (infrastructure, args = [], { envFile = [], it = true }) => {
     const importedEnv = await importEnv(...envFile);
     ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
-    const infrastructureConfig = path.join(config, prodInfrastructureConfigs, infrastructure);
+    const infrastructureConfig = path.join(cwd, config, prodProvisionConfigs, infrastructure);
     await fsp.stat(infrastructureConfig).catch(err => {
         if (err.code !== "ENOENT") {
             throw err;
@@ -187,7 +229,7 @@ module.exports.provision = async (infrastructure, args = [], { envFile = [], it 
             throw new Error(
                 `Infrastructure ${infrastructure} not found (${path.join(
                     config,
-                    prodInfrastructureConfigs,
+                    prodProvisionConfigs,
                     infrastructure
                 )})`
             );
@@ -197,6 +239,46 @@ module.exports.provision = async (infrastructure, args = [], { envFile = [], it 
     return docker.run("hashicorp/terraform:light", args, {
         root: cwd,
         runDir: infrastructureConfig,
+        it,
+        env: importedEnv
+    });
+};
+
+module.exports.configure = async (infrastructure, playbook, args = [], { envFile = [], it = true }) => {
+    const importedEnv = await importEnv(...envFile);
+    ensureVersionCompatibility(importedEnv.DEVOPS_VERSION);
+    const playbookFile = path.join(cwd, config, prodConfigureConfigs, infrastructure, `${playbook}.yml`);
+    await fsp.stat(playbookFile).catch(err => {
+        if (err.code !== "ENOENT") {
+            throw err;
+        } else {
+            throw new Error(
+                `Playbook ${playbook} not found (${path.join(
+                    config,
+                    prodConfigureConfigs,
+                    infrastructure,
+                    `${playbook}.yml`
+                )})`
+            );
+        }
+    });
+
+    const { DEVOPS_ANSIBLE_IDENTITY_FILE: identityFile } = importedEnv;
+
+    if (!args.includes("--private-key") && !args.includes("--key-file") && identityFile) {
+        args.unshift(identityFile);
+        args.unshift("--private-key");
+    }
+
+    if (!args.includes("-i") && !args.includes("--inventory") && !args.includes("--inventory-file")) {
+        args.unshift(path.join(config, prodConfigureConfigs, infrastructure, `inventory`));
+        args.unshift("-i");
+    }
+
+    args.push(playbookFile);
+    // return docker.run("philm/ansible_playbook", args, {
+    return docker.run("hauslo/ansible-playbook", args, {
+        root: cwd,
         it,
         env: importedEnv
     });

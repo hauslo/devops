@@ -13,8 +13,8 @@ module.exports = {
     devTestSuites: "test",
     prodBuildScripts: "build",
     prodReleaseVersions: "release",
-    prodInfrastructureConfigs: "infra",
-    prodClusterConfigs: "cluster",
+    prodProvisionConfigs: "provision",
+    prodConfigureConfigs: "configure",
     prodStacks: "deploy",
     prodBackupScripts: "backup",
     prodRestoreScripts: "restore"
