@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 DEVOPS_ROOT=$(pwd)
-DEVOPS_IMAGE=hauslo/devops:0.4.0
+DEVOPS_VERSION=${DEVOPS_VERSION:-dev}
+DEVOPS_IMAGE=hauslo/devops:${DEVOPS_VERSION}
 
 COLOR_ON="\033[1;33m"
 COLOR_OFF="\033[0m"
